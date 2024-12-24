@@ -1,0 +1,15 @@
+{
+  "name": "location-sharing-server",
+  "version": "1.0.0",
+  "description": "WebSocket server for location sharing",
+  "main": "websocket-server.js",
+  "scripts": {
+    "start": "node websocket-server.js"
+  },
+  "dependencies": {
+    "ws": "^8.13.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
