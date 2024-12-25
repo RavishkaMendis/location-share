@@ -19,6 +19,7 @@ const LocationMap = ({ myLocation, users, selectedUser }) => {
   const mapInstanceRef = useRef(null);
   const markersRef = useRef(new Map());
   const initialBoundsSet = useRef(false);
+  const lastSelectedUser = useRef(null);
 
   // Initialize map
   useEffect(() => {
@@ -45,7 +46,37 @@ const LocationMap = ({ myLocation, users, selectedUser }) => {
     };
   }, []);
 
-  // Update markers for all users
+  // Handle zoom and bounds separately from marker updates
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    const map = mapInstanceRef.current;
+
+    // Only update view when selected user changes
+    if (selectedUser?.location && selectedUser !== lastSelectedUser.current) {
+      map.setView(
+        [selectedUser.location.latitude, selectedUser.location.longitude],
+        15,
+        { animate: true }
+      );
+      lastSelectedUser.current = selectedUser;
+    } else if (!initialBoundsSet.current) {
+      const allLocations = [
+        myLocation,
+        ...users.filter(u => u.location).map(u => u.location)
+      ].filter(Boolean);
+
+      if (allLocations.length > 0) {
+        const bounds = L.latLngBounds(
+          allLocations.map(loc => [loc.latitude, loc.longitude])
+        ).pad(0.1);
+        map.fitBounds(bounds);
+        initialBoundsSet.current = true;
+      }
+    }
+  }, [myLocation, users, selectedUser]);
+
+  // Update markers
   useEffect(() => {
     if (!mapInstanceRef.current) return;
 
@@ -76,32 +107,6 @@ const LocationMap = ({ myLocation, users, selectedUser }) => {
         markersRef.current.delete(key);
       }
     });
-
-    // Only fit bounds on initial load or when selected user changes
-    if (!initialBoundsSet.current || selectedUser) {
-      const allLocations = [
-        myLocation,
-        ...users.filter(u => u.location).map(u => u.location)
-      ].filter(Boolean);
-
-      if (allLocations.length > 0) {
-        const bounds = L.latLngBounds(
-          allLocations.map(loc => [loc.latitude, loc.longitude])
-        ).pad(0.1);
-        
-        if (selectedUser && selectedUser.location) {
-          // If a user is selected, center and zoom to their location
-          map.setView(
-            [selectedUser.location.latitude, selectedUser.location.longitude],
-            15
-          );
-        } else {
-          // Otherwise fit all markers
-          map.fitBounds(bounds);
-        }
-        initialBoundsSet.current = true;
-      }
-    }
 
     function createMarker(username, color) {
       const marker = L.marker([0, 0], {
@@ -135,7 +140,7 @@ const LocationMap = ({ myLocation, users, selectedUser }) => {
       return marker;
     }
 
-  }, [myLocation, users, selectedUser]);
+  }, [myLocation, users]);
 
   return (
     <div 

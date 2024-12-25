@@ -117,22 +117,30 @@ server.on('connection', (ws) => {
             const session = sessions.get(sessionId);
             
             // Find the recipient's websocket connection
-            let recipientWs = null;
-            for (const [ws, userData] of session.users.entries()) {
-              if (userData.username === data.to) {
-                recipientWs = ws;
-                break;
+            let recipientFound = false;
+            session.users.forEach((userData, client) => {
+              if (userData.username === data.to && client.readyState === WebSocket.OPEN) {
+                // Send to recipient
+                client.send(JSON.stringify({
+                  type: 'chat_message',
+                  from: userData.username,
+                  to: data.to,
+                  text: data.text,
+                  timestamp: data.timestamp
+                }));
+                recipientFound = true;
               }
-            }
+            });
 
-            // Send the message to the recipient if they're connected
-            if (recipientWs && recipientWs.readyState === WebSocket.OPEN) {
-              recipientWs.send(JSON.stringify({
+            // Send confirmation back to sender
+            if (recipientFound) {
+              ws.send(JSON.stringify({
                 type: 'chat_message',
-                from: userData.username,
+                from: data.from,
                 to: data.to,
                 text: data.text,
-                timestamp: data.timestamp
+                timestamp: data.timestamp,
+                isSelf: true
               }));
             }
           }

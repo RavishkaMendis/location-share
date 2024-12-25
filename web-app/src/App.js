@@ -55,10 +55,20 @@ function App() {
           ));
           break;
         case 'chat_message':
-          setMessages(prev => [...prev, {
-            ...data,
-            isSelf: data.from === username
-          }]);
+          setMessages(prev => {
+            const messageExists = prev.some(msg => 
+              msg.from === data.from && 
+              msg.to === data.to && 
+              msg.timestamp === data.timestamp
+            );
+            
+            if (messageExists) return prev;
+            
+            return [...prev, {
+              ...data,
+              isSelf: data.from === username
+            }];
+          });
           break;
         default:
           break;
@@ -193,7 +203,7 @@ function App() {
           </div>
           
           <button 
-            className="sidebar-toggle" 
+            className={`sidebar-toggle ${sidebarOpen ? 'sidebar-visible' : ''}`}
             onClick={toggleSidebar}
             aria-label="Toggle users sidebar"
           >
@@ -204,7 +214,7 @@ function App() {
             </div>
           </button>
           
-          <div className={`users-sidebar ${!sidebarOpen ? 'collapsed' : ''}`}>
+          <div className={`users-sidebar ${sidebarOpen ? 'visible' : ''}`}>
             <h3>Users in Session</h3>
             <div className="users-list">
               {users.map(user => (
@@ -220,7 +230,7 @@ function App() {
             </div>
           </div>
           
-          <div className="map-container">
+          <div className={`map-container ${sidebarOpen ? 'sidebar-visible' : ''}`}>
             <LocationMap 
               myLocation={myLocation}
               users={users}
@@ -244,13 +254,15 @@ function App() {
         </>
       )}
       {!showJoinDialog && selectedUser && (
-        <Chat
-          selectedUser={selectedUser}
-          ws={ws}
-          username={username}
-          sessionId={sessionId}
-          messages={messages}
-        />
+        <div className={`chat-container ${sidebarOpen ? 'sidebar-visible' : ''}`}>
+          <Chat
+            selectedUser={selectedUser}
+            ws={ws}
+            username={username}
+            sessionId={sessionId}
+            messages={messages}
+          />
+        </div>
       )}
     </div>
   );

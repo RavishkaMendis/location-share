@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-const Chat = ({ selectedUser, ws, username, sessionId }) => {
-  const [messages, setMessages] = useState([]);
+const Chat = ({ selectedUser, ws, username, sessionId, messages }) => {
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef(null);
 
@@ -28,13 +27,6 @@ const Chat = ({ selectedUser, ws, username, sessionId }) => {
 
     if (ws?.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(messageData));
-      
-      // Add message to local state
-      setMessages(prev => [...prev, {
-        ...messageData,
-        isSelf: true
-      }]);
-      
       setNewMessage('');
     }
   };
@@ -59,8 +51,8 @@ const Chat = ({ selectedUser, ws, username, sessionId }) => {
       <div className="messages-container">
         {chatMessages.map((msg, index) => (
           <div 
-            key={index} 
-            className={`message ${msg.isSelf ? 'sent' : 'received'}`}
+            key={`${msg.timestamp}-${index}`}
+            className={`message ${msg.from === username ? 'sent' : 'received'}`}
           >
             <div className="message-content">
               {msg.text}
