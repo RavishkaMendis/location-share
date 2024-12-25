@@ -7,8 +7,7 @@
     "start": "node websocket-server.js"
   },
   "dependencies": {
-    "http": "^0.0.1-security",
-    "ws": "^8.18.0"
+    "ws": "^8.13.0"
   },
   "engines": {
     "node": ">=14.0.0"
