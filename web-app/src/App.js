@@ -1,64 +1,84 @@
 import React, { useState, useEffect } from 'react';
 import LocationMap from './components/LocationMap';
-import './App.css';
+import StatusBar from './components/StatusBar';
+import DistanceDisplay from './components/DistanceDisplay';
+import './styles/index.css';
 
 function App() {
-  const [socket, setSocket] = useState(null);
   const [myLocation, setMyLocation] = useState(null);
   const [partnerLocation, setPartnerLocation] = useState(null);
+  const [connectionStatus, setConnectionStatus] = useState('connecting');
 
   useEffect(() => {
-    // Connect to WebSocket
+    // First, get initial location
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const location = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+        console.log('Initial location:', location);
+        setMyLocation(location);
+      },
+      (error) => {
+        console.error('Location error:', error);
+        alert('Please enable location access in your browser settings to use this app.');
+      },
+      { enableHighAccuracy: true }
+    );
+
+    // Then set up WebSocket
     const ws = new WebSocket('wss://location-share-ww81.onrender.com');
     
     ws.onopen = () => {
-      // Check if connection is actually working with a ping
-      try {
-        ws.send(JSON.stringify({ type: 'ping' }));
-      } catch (e) {
-        alert('WebSocket connection blocked. Please disable Brave Shields for this site or set them to "Basic" mode.');
-      }
-      console.log('Connected to WebSocket');
-      setSocket(ws);
+      console.log('WebSocket connected');
+      setConnectionStatus('connected');
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket disconnected');
+      setConnectionStatus('disconnected');
     };
 
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'location' && data.sender !== 'me') {
-        setPartnerLocation(data.location);
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'location' && data.sender !== 'me') {
+          console.log('Received partner location:', data.location);
+          setPartnerLocation(data.location);
+        }
+      } catch (e) {
+        console.error('Message parsing error:', e);
       }
     };
 
-    // Get and send location updates
-    const watchId = navigator.geolocation ? 
-      navigator.geolocation.watchPosition(
-        (position) => {
-          const location = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
-          setMyLocation(location);
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-              type: 'location',
-              sender: 'me',
-              location
-            }));
-          }
-        },
-        (error) => {
-          if (error.code === error.PERMISSION_DENIED) {
-            alert('Please enable location permissions in your Brave browser settings to use this app.');
-          } else {
-            console.error('Error getting location:', error);
-          }
-        },
-        { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 }
-      )
-      : (() => {
-          alert('Geolocation is not supported by your browser');
-          return null;
-        })();
+    // Set up continuous location watching
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const location = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+        console.log('Location update:', location);
+        setMyLocation(location);
+        
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({
+            type: 'location',
+            sender: 'me',
+            location
+          }));
+        }
+      },
+      (error) => {
+        console.error('Watch position error:', error);
+      },
+      { 
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
 
     return () => {
       navigator.geolocation.clearWatch(watchId);
@@ -67,11 +87,18 @@ function App() {
   }, []);
 
   return (
-    <div className="App bg-gray-900 min-h-screen">
-      <LocationMap
+    <div className="app-container">
+      <StatusBar status={connectionStatus} />
+      <DistanceDisplay 
         myLocation={myLocation}
         partnerLocation={partnerLocation}
       />
+      <div className="map-wrapper">
+        <LocationMap
+          myLocation={myLocation}
+          partnerLocation={partnerLocation}
+        />
+      </div>
     </div>
   );
 }

@@ -1,23 +1,46 @@
-import React from 'react';
-import { MapContainer, TileLayer, Circle, Popup } from 'react-leaflet';
+import React, { useEffect, useRef } from 'react';
+import { MapContainer, TileLayer, Circle, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
+// Component to handle map center updates
+function MapUpdater({ center }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) {
+      map.setView(center, map.getZoom());
+    }
+  }, [center, map]);
+  return null;
+}
+
 const LocationMap = ({ myLocation, partnerLocation }) => {
+  const mapRef = useRef(null);
   const defaultCenter = [0, 0];
-  const defaultZoom = 12;
+  const defaultZoom = 13;
+
+  // Calculate center based on available locations
+  const getMapCenter = () => {
+    if (myLocation) {
+      return [myLocation.latitude, myLocation.longitude];
+    }
+    return defaultCenter;
+  };
 
   return (
     <div className="map-container">
       <MapContainer
-        center={defaultCenter}
+        center={getMapCenter()}
         zoom={defaultZoom}
         className="map"
         style={{ height: '100%', width: '100%' }}
+        ref={mapRef}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           className="dark-map"
         />
+        
+        <MapUpdater center={myLocation ? [myLocation.latitude, myLocation.longitude] : null} />
         
         {myLocation && (
           <Circle
