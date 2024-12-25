@@ -1,0 +1,75 @@
+@import 'leaflet/dist/leaflet.css';
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #000;
+  color: #fff;
+}
+
+.app-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  background: #111;
+}
+
+.status-bar {
+  padding: 10px;
+  background: #000;
+  border-bottom: 1px solid #333;
+}
+
+.distance-display {
+  padding: 15px;
+  background: #000;
+  text-align: center;
+  border-bottom: 1px solid #333;
+}
+
+.map-wrapper {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+
+.map-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #1a1a1a !important;
+}
+
+.distance-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #00ff9d;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-text {
+  font-size: 14px;
+}
