@@ -11,6 +11,9 @@ function App() {
   const [sessionId, setSessionId] = useState(null);
   const [showJoinDialog, setShowJoinDialog] = useState(true);
   const [inputSessionId, setInputSessionId] = useState('');
+  const [username, setUsername] = useState('');
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
     const websocket = new WebSocket('wss://location-share-ww81.onrender.com');
@@ -32,12 +35,20 @@ function App() {
         case 'session_created':
         case 'session_joined':
           setSessionId(data.sessionId);
+          if (data.users) {
+            setUsers(data.users);
+          }
           setShowJoinDialog(false);
           break;
-        case 'location':
-          if (data.sender !== 'self') {
-            setOtherLocation(data.location);
-          }
+        case 'users_update':
+          setUsers(data.users);
+          break;
+        case 'location_update':
+          setUsers(prev => prev.map(user => 
+            user.username === data.username 
+              ? { ...user, location: data.location, online: data.online }
+              : user
+          ));
           break;
         default:
           break;
@@ -86,18 +97,26 @@ function App() {
   }, [ws, sessionId]);
 
   const handleCreateSession = () => {
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'create_session' }));
+    if (ws?.readyState === WebSocket.OPEN && username) {
+      ws.send(JSON.stringify({ 
+        type: 'create_session',
+        username: username
+      }));
     }
   };
 
   const handleJoinSession = () => {
-    if (ws?.readyState === WebSocket.OPEN && inputSessionId) {
+    if (ws?.readyState === WebSocket.OPEN && inputSessionId && username) {
       ws.send(JSON.stringify({ 
-        type: 'join_session', 
-        sessionId: inputSessionId 
+        type: 'join_session',
+        sessionId: inputSessionId,
+        username: username
       }));
     }
+  };
+
+  const handleUserSelect = (user) => {
+    setSelectedUser(user);
   };
 
   return (
@@ -106,7 +125,18 @@ function App() {
         <div className="session-dialog">
           <div className="session-container">
             <h2>Location Sharing</h2>
-            <button className="create-button" onClick={handleCreateSession}>
+            <input
+              type="text"
+              placeholder="Enter your name"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="username-input"
+            />
+            <button 
+              className="create-button" 
+              onClick={handleCreateSession}
+              disabled={!username}
+            >
               Create New Session
             </button>
             <div className="join-section">
@@ -117,7 +147,12 @@ function App() {
                 onChange={(e) => setInputSessionId(e.target.value.toUpperCase())}
                 maxLength={6}
               />
-              <button onClick={handleJoinSession}>Join Session</button>
+              <button 
+                onClick={handleJoinSession}
+                disabled={!username || !inputSessionId}
+              >
+                Join Session
+              </button>
             </div>
           </div>
         </div>
@@ -129,12 +164,42 @@ function App() {
             </span>
           </div>
           
+          <div className="users-sidebar">
+            <h3>Users in Session</h3>
+            <div className="users-list">
+              {users.map(user => (
+                <div 
+                  key={user.username}
+                  className={`user-item ${user.online ? 'online' : 'offline'} ${selectedUser?.username === user.username ? 'selected' : ''}`}
+                  onClick={() => handleUserSelect(user)}
+                >
+                  <span className="user-name">{user.username}</span>
+                  <span className="user-status">{user.online ? 'Online' : 'Last seen'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          
           <div className="map-container">
-            <LocationMap myLocation={myLocation} otherLocation={otherLocation} />
+            <LocationMap 
+              myLocation={myLocation}
+              users={users}
+              selectedUser={selectedUser}
+            />
           </div>
           
           <div className="distance-container">
-            <DistanceDisplay myLocation={myLocation} otherLocation={otherLocation} />
+            {selectedUser ? (
+              <DistanceDisplay 
+                myLocation={myLocation}
+                otherLocation={selectedUser.location}
+                username={selectedUser.username}
+              />
+            ) : (
+              <span className="select-user-prompt">
+                Select a user to see distance
+              </span>
+            )}
           </div>
         </>
       )}

@@ -4,43 +4,81 @@ const port = process.env.PORT || 10000;
 
 const server = new WebSocket.Server({ port });
 
-// Store active sessions
-const sessions = new Map(); // sessionId -> Set of connected clients
+// Store active sessions and their users
+const sessions = new Map(); // sessionId -> { users: Map<ws, userData>, lastLocations: Map<username, location> }
 
-// Generate random session ID
 function generateSessionId() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
+function broadcastSessionUsers(sessionId) {
+  const session = sessions.get(sessionId);
+  if (!session) return;
+
+  const users = Array.from(session.users.values()).map(user => ({
+    username: user.username,
+    location: session.lastLocations.get(user.username),
+    online: user.online
+  }));
+
+  session.users.forEach((userData, client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({
+        type: 'users_update',
+        users: users.filter(u => u.username !== userData.username) // Don't send user their own info
+      }));
+    }
+  });
+}
+
 server.on('connection', (ws) => {
   let sessionId = null;
-  
+  let userData = null;
+
   ws.on('message', (message) => {
     try {
       const data = JSON.parse(message);
       
       switch (data.type) {
         case 'join_session':
-          // Handle joining a session
           sessionId = data.sessionId.toUpperCase();
+          userData = { username: data.username, online: true };
+
           if (!sessions.has(sessionId)) {
-            sessions.set(sessionId, new Set());
+            sessions.set(sessionId, {
+              users: new Map(),
+              lastLocations: new Map()
+            });
           }
-          sessions.get(sessionId).add(ws);
+
+          const session = sessions.get(sessionId);
+          session.users.set(ws, userData);
           
-          // Confirm session join
+          // Send confirmation and existing users to new user
           ws.send(JSON.stringify({
             type: 'session_joined',
-            sessionId: sessionId
+            sessionId: sessionId,
+            users: Array.from(session.users.values())
+              .filter(u => u.username !== userData.username)
+              .map(u => ({
+                username: u.username,
+                location: session.lastLocations.get(u.username),
+                online: u.online
+              }))
           }));
+
+          broadcastSessionUsers(sessionId);
           break;
 
         case 'create_session':
-          // Create new session
           sessionId = generateSessionId();
-          sessions.set(sessionId, new Set([ws]));
+          userData = { username: data.username, online: true };
           
-          // Send session ID back to creator
+          sessions.set(sessionId, {
+            users: new Map([[ws, userData]]),
+            lastLocations: new Map()
+          });
+          
           ws.send(JSON.stringify({
             type: 'session_created',
             sessionId: sessionId
@@ -48,14 +86,18 @@ server.on('connection', (ws) => {
           break;
 
         case 'location':
-          // Broadcast location to all clients in the same session
           if (sessionId && sessions.has(sessionId)) {
-            sessions.get(sessionId).forEach(client => {
+            const session = sessions.get(sessionId);
+            session.lastLocations.set(userData.username, data.location);
+
+            // Broadcast to other users in session
+            session.users.forEach((user, client) => {
               if (client !== ws && client.readyState === WebSocket.OPEN) {
                 client.send(JSON.stringify({
-                  type: 'location',
+                  type: 'location_update',
+                  username: userData.username,
                   location: data.location,
-                  sender: 'other'
+                  online: true
                 }));
               }
             });
@@ -68,10 +110,16 @@ server.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
-    // Remove client from session
-    if (sessionId && sessions.has(sessionId)) {
-      sessions.get(sessionId).delete(ws);
-      if (sessions.get(sessionId).size === 0) {
+    if (sessionId && sessions.has(sessionId) && userData) {
+      const session = sessions.get(sessionId);
+      userData.online = false;
+      
+      // Keep the user's last location but mark them as offline
+      broadcastSessionUsers(sessionId);
+
+      // Clean up if no online users remain
+      const hasOnlineUsers = Array.from(session.users.values()).some(u => u.online);
+      if (!hasOnlineUsers) {
         sessions.delete(sessionId);
       }
     }

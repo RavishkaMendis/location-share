@@ -1,6 +1,6 @@
 import React from 'react';
 
-const DistanceDisplay = ({ myLocation, otherLocation }) => {
+const DistanceDisplay = ({ myLocation, otherLocation, username }) => {
   const calculateDistance = () => {
     if (!myLocation || !otherLocation) return null;
 
@@ -27,11 +27,11 @@ const DistanceDisplay = ({ myLocation, otherLocation }) => {
     <div className="distance-display">
       {distance ? (
         <span className="distance-text">
-          {distance} km apart
+          {distance} km from {username}
         </span>
       ) : (
         <span className="waiting-text">
-          Waiting for other user's location...
+          {username ? `Waiting for ${username}'s location...` : 'Select a user to see distance'}
         </span>
       )}
     </div>

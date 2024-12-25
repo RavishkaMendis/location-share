@@ -183,3 +183,79 @@
 .join-section button:hover {
   background-color: #555;
 }
+
+.username-input {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 1rem;
+  border: 2px solid #444;
+  border-radius: 6px;
+  background-color: #333;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.users-sidebar {
+  position: fixed;
+  top: 60px;
+  right: 0;
+  width: 250px;
+  height: calc(100vh - 120px);
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.user-item {
+  padding: 0.75rem;
+  border-radius: 6px;
+  background-color: #242424;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-item:hover {
+  background-color: #333;
+}
+
+.user-item.selected {
+  background-color: #444;
+}
+
+.user-item.online {
+  border-left: 3px solid #00ff9d;
+}
+
+.user-item.offline {
+  border-left: 3px solid #666;
+  opacity: 0.7;
+}
+
+.user-name {
+  font-weight: bold;
+  color: #fff;
+}
+
+.user-status {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.select-user-prompt {
+  color: #888;
+  font-size: 1rem;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
