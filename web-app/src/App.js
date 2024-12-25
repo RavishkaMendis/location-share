@@ -39,9 +39,11 @@ function App() {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
         };
+        console.log('Got new location:', newLocation);
         setMyLocation(newLocation);
         
         if (websocket.readyState === WebSocket.OPEN) {
+          console.log('Sending location to server');
           websocket.send(JSON.stringify({
             type: 'location',
             location: newLocation,
@@ -49,7 +51,10 @@ function App() {
           }));
         }
       },
-      (error) => console.error('Error getting location:', error),
+      (error) => {
+        console.error('Location error:', error);
+        alert('Please enable location access to use this app.');
+      },
       {
         enableHighAccuracy: true,
         maximumAge: 0,
@@ -71,7 +76,9 @@ function App() {
         </span>
       </div>
       
-      <LocationMap myLocation={myLocation} otherLocation={otherLocation} />
+      <div className="map-container">
+        <LocationMap myLocation={myLocation} otherLocation={otherLocation} />
+      </div>
       
       <div className="distance-container">
         <DistanceDisplay myLocation={myLocation} otherLocation={otherLocation} />

@@ -58,3 +58,39 @@
 .leaflet-control-attribution a {
   color: #888 !important;
 }
+
+.map-container {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.distance-display {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.waiting-text {
+  color: #888;
+}
+
+.distance-text {
+  color: #00ff9d;
+}
+
+/* Ensure the map takes up the full space */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  position: absolute !important;
+  top: 0;
+  left: 0;
+}
+
+/* Fix map controls visibility */
+.leaflet-control-container {
+  position: relative;
+  z-index: 1000;
+}
