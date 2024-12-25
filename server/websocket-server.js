@@ -42,7 +42,11 @@ server.on('connection', (ws) => {
       switch (data.type) {
         case 'join_session':
           sessionId = data.sessionId.toUpperCase();
-          userData = { username: data.username, online: true };
+          userData = { 
+            username: data.username, 
+            online: true,
+            color: data.color
+          };
 
           if (!sessions.has(sessionId)) {
             sessions.set(sessionId, {
@@ -72,7 +76,11 @@ server.on('connection', (ws) => {
 
         case 'create_session':
           sessionId = generateSessionId();
-          userData = { username: data.username, online: true };
+          userData = { 
+            username: data.username, 
+            online: true,
+            color: data.color
+          };
           
           sessions.set(sessionId, {
             users: new Map([[ws, userData]]),
@@ -101,6 +109,32 @@ server.on('connection', (ws) => {
                 }));
               }
             });
+          }
+          break;
+
+        case 'chat_message':
+          if (sessionId && sessions.has(sessionId)) {
+            const session = sessions.get(sessionId);
+            
+            // Find the recipient's websocket connection
+            let recipientWs = null;
+            for (const [ws, userData] of session.users.entries()) {
+              if (userData.username === data.to) {
+                recipientWs = ws;
+                break;
+              }
+            }
+
+            // Send the message to the recipient if they're connected
+            if (recipientWs && recipientWs.readyState === WebSocket.OPEN) {
+              recipientWs.send(JSON.stringify({
+                type: 'chat_message',
+                from: userData.username,
+                to: data.to,
+                text: data.text,
+                timestamp: data.timestamp
+              }));
+            }
           }
           break;
       }

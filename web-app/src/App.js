@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import LocationMap from './components/LocationMap';
 import DistanceDisplay from './components/DistanceDisplay';
+import Chat from './components/Chat';
 import './App.css';
 
 function App() {
@@ -15,6 +16,8 @@ function App() {
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [userColor, setUserColor] = useState('#00ff9d');
+  const [messages, setMessages] = useState([]);
 
   useEffect(() => {
     const websocket = new WebSocket('wss://location-share-ww81.onrender.com');
@@ -50,6 +53,12 @@ function App() {
               ? { ...user, location: data.location, online: data.online }
               : user
           ));
+          break;
+        case 'chat_message':
+          setMessages(prev => [...prev, {
+            ...data,
+            isSelf: data.from === username
+          }]);
           break;
         default:
           break;
@@ -101,7 +110,8 @@ function App() {
     if (ws?.readyState === WebSocket.OPEN && username) {
       ws.send(JSON.stringify({ 
         type: 'create_session',
-        username: username
+        username: username,
+        color: userColor
       }));
     }
   };
@@ -111,7 +121,8 @@ function App() {
       ws.send(JSON.stringify({ 
         type: 'join_session',
         sessionId: inputSessionId,
-        username: username
+        username: username,
+        color: userColor
       }));
     }
   };
@@ -130,13 +141,25 @@ function App() {
         <div className="session-dialog">
           <div className="session-container">
             <h2>Location Sharing</h2>
-            <input
-              type="text"
-              placeholder="Enter your name"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="username-input"
-            />
+            <div className="input-group">
+              <input
+                type="text"
+                placeholder="Enter your name"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="username-input"
+              />
+              <div className="color-picker">
+                <label htmlFor="userColor">Pick your color:</label>
+                <input
+                  type="color"
+                  id="userColor"
+                  value={userColor}
+                  onChange={(e) => setUserColor(e.target.value)}
+                  className="color-input"
+                />
+              </div>
+            </div>
             <button 
               className="create-button" 
               onClick={handleCreateSession}
@@ -219,6 +242,15 @@ function App() {
             )}
           </div>
         </>
+      )}
+      {!showJoinDialog && selectedUser && (
+        <Chat
+          selectedUser={selectedUser}
+          ws={ws}
+          username={username}
+          sessionId={sessionId}
+          messages={messages}
+        />
       )}
     </div>
   );

@@ -18,6 +18,7 @@ const LocationMap = ({ myLocation, users, selectedUser }) => {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersRef = useRef(new Map());
+  const initialBoundsSet = useRef(false);
 
   // Initialize map
   useEffect(() => {
@@ -61,7 +62,7 @@ const LocationMap = ({ myLocation, users, selectedUser }) => {
     // Update or create markers for other users
     users.forEach(user => {
       if (user.location) {
-        const userColor = generateColor(user.username);
+        const userColor = user.color || generateColor(user.username);
         const marker = markersRef.current.get(user.username) || createMarker(user.username, userColor);
         marker.setLatLng([user.location.latitude, user.location.longitude]);
         currentMarkers.add(user.username);
@@ -76,17 +77,30 @@ const LocationMap = ({ myLocation, users, selectedUser }) => {
       }
     });
 
-    // Fit bounds if we have locations
-    const allLocations = [
-      myLocation,
-      ...users.filter(u => u.location).map(u => u.location)
-    ].filter(Boolean);
+    // Only fit bounds on initial load or when selected user changes
+    if (!initialBoundsSet.current || selectedUser) {
+      const allLocations = [
+        myLocation,
+        ...users.filter(u => u.location).map(u => u.location)
+      ].filter(Boolean);
 
-    if (allLocations.length > 0) {
-      const bounds = L.latLngBounds(
-        allLocations.map(loc => [loc.latitude, loc.longitude])
-      ).pad(0.1);
-      map.fitBounds(bounds);
+      if (allLocations.length > 0) {
+        const bounds = L.latLngBounds(
+          allLocations.map(loc => [loc.latitude, loc.longitude])
+        ).pad(0.1);
+        
+        if (selectedUser && selectedUser.location) {
+          // If a user is selected, center and zoom to their location
+          map.setView(
+            [selectedUser.location.latitude, selectedUser.location.longitude],
+            15
+          );
+        } else {
+          // Otherwise fit all markers
+          map.fitBounds(bounds);
+        }
+        initialBoundsSet.current = true;
+      }
     }
 
     function createMarker(username, color) {
