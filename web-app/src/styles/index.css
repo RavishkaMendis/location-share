@@ -1,0 +1,112 @@
+@import 'leaflet/dist/leaflet.css';
+
+/* Mobile-specific fixes */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  box-sizing: border-box;
+}
+
+html, body {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #000;
+  color: #fff;
+}
+
+/* Main container */
+.app-container {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: #111;
+  overflow: hidden;
+}
+
+/* Status Bar Styles */
+.status-bar {
+  background: rgba(0, 0, 0, 0.8);
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #333;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 10px currentColor;
+}
+
+.status-text {
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  color: #ccc;
+  font-weight: 500;
+}
+
+/* Distance Display Styles */
+.distance-display {
+  background: rgba(0, 0, 0, 0.8);
+  padding: 1rem;
+  border-bottom: 1px solid #333;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.distance-container {
+  text-align: center;
+}
+
+.distance-value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #00ff9d;
+  text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+}
+
+.distance-label {
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  color: #666;
+  margin-top: 0.25rem;
+}
+
+/* Map Styles */
+.map-container {
+  flex: 1;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.map {
+  height: 100% !important;
+  width: 100% !important;
+  background: #1a1a1a !important;
+  filter: invert(1) hue-rotate(180deg) brightness(0.8) contrast(0.9);
+}
+
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+  background: #1a1a1a;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
