@@ -1,103 +1,80 @@
 import React, { useState, useEffect } from 'react';
 import LocationMap from './components/LocationMap';
-import StatusBar from './components/StatusBar';
 import DistanceDisplay from './components/DistanceDisplay';
-import './styles/index.css';
+import './App.css';
 
 function App() {
+  const [ws, setWs] = useState(null);
+  const [connected, setConnected] = useState(false);
   const [myLocation, setMyLocation] = useState(null);
-  const [partnerLocation, setPartnerLocation] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState('connecting');
+  const [otherLocation, setOtherLocation] = useState(null);
 
   useEffect(() => {
-    // First, get initial location
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const location = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
-        console.log('Initial location:', location);
-        setMyLocation(location);
-      },
-      (error) => {
-        console.error('Location error:', error);
-        alert('Please enable location access in your browser settings to use this app.');
-      },
-      { enableHighAccuracy: true }
-    );
-
-    // Then set up WebSocket
-    const ws = new WebSocket('wss://location-share-ww81.onrender.com');
+    // Connect to WebSocket
+    const websocket = new WebSocket('wss://location-share-ww81.onrender.com');
     
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-      setConnectionStatus('connected');
+    websocket.onopen = () => {
+      setConnected(true);
+      console.log('Connected to server');
     };
 
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-      setConnectionStatus('disconnected');
+    websocket.onclose = () => {
+      setConnected(false);
+      console.log('Disconnected from server');
     };
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'location' && data.sender !== 'me') {
-          console.log('Received partner location:', data.location);
-          setPartnerLocation(data.location);
-        }
-      } catch (e) {
-        console.error('Message parsing error:', e);
+    websocket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'location' && data.sender !== 'self') {
+        setOtherLocation(data.location);
       }
     };
 
-    // Set up continuous location watching
+    setWs(websocket);
+
+    // Start watching location
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        const location = {
+        const newLocation = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
         };
-        console.log('Location update:', location);
-        setMyLocation(location);
+        setMyLocation(newLocation);
         
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({
+        if (websocket.readyState === WebSocket.OPEN) {
+          websocket.send(JSON.stringify({
             type: 'location',
-            sender: 'me',
-            location
+            location: newLocation,
+            sender: 'self'
           }));
         }
       },
-      (error) => {
-        console.error('Watch position error:', error);
-      },
-      { 
+      (error) => console.error('Error getting location:', error),
+      {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
+        maximumAge: 0,
+        timeout: 5000
       }
     );
 
     return () => {
       navigator.geolocation.clearWatch(watchId);
-      ws.close();
+      websocket.close();
     };
   }, []);
 
   return (
-    <div className="app-container">
-      <StatusBar status={connectionStatus} />
-      <DistanceDisplay 
-        myLocation={myLocation}
-        partnerLocation={partnerLocation}
-      />
-      <div className="map-wrapper">
-        <LocationMap
-          myLocation={myLocation}
-          partnerLocation={partnerLocation}
-        />
+    <div className="app">
+      <div className="status-bar">
+        <span className={`connection-status ${connected ? 'connected' : 'disconnected'}`}>
+          {connected ? 'CONNECTED' : 'DISCONNECTED'}
+        </span>
+      </div>
+      
+      <LocationMap myLocation={myLocation} otherLocation={otherLocation} />
+      
+      <div className="distance-container">
+        <DistanceDisplay myLocation={myLocation} otherLocation={otherLocation} />
       </div>
     </div>
   );
