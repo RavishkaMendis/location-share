@@ -2,21 +2,26 @@ import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-const LocationMap = ({ myLocation, otherLocation }) => {
-  console.log('LocationMap render:', { myLocation, otherLocation });
+// Add this color generation function
+function generateColor(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const c = (hash & 0x00FFFFFF)
+    .toString(16)
+    .toUpperCase();
+  return '#' + '00000'.substring(0, 6 - c.length) + c;
+}
 
+const LocationMap = ({ myLocation, users, selectedUser }) => {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
-  const markersRef = useRef({
-    me: null,
-    other: null
-  });
+  const markersRef = useRef(new Map());
 
   // Initialize map
   useEffect(() => {
-    console.log('Map initialization');
     if (!mapInstanceRef.current && mapRef.current) {
-      // Set initial view to a default location
       mapInstanceRef.current = L.map(mapRef.current, {
         center: [0, 0],
         zoom: 2,
@@ -24,79 +29,99 @@ const LocationMap = ({ myLocation, otherLocation }) => {
         attributionControl: true
       });
 
-      // Add dark theme map tiles
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 19,
         subdomains: 'abcd'
       }).addTo(mapInstanceRef.current);
-
-      // Create custom markers
-      const createMarkerIcon = (color) => {
-        return L.divIcon({
-          className: 'custom-marker',
-          html: `<div style="
-            background-color: ${color};
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            border: 3px solid white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5)
-          "></div>`,
-          iconSize: [20, 20],
-          iconAnchor: [10, 10]
-        });
-      };
-
-      // Initialize markers with default positions
-      markersRef.current.me = L.marker([0, 0], {
-        icon: createMarkerIcon('#00ff9d')
-      }).addTo(mapInstanceRef.current);
-      
-      markersRef.current.other = L.marker([0, 0], {
-        icon: createMarkerIcon('#ff3b3b')
-      }).addTo(mapInstanceRef.current);
     }
 
-    // Cleanup function
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
-  }, []); // Empty dependency array for initialization
+  }, []);
 
-  // Update markers and view when locations change
+  // Update markers for all users
   useEffect(() => {
-    console.log('Location update:', { myLocation, otherLocation });
     if (!mapInstanceRef.current) return;
 
     const map = mapInstanceRef.current;
-    
-    if (myLocation?.latitude && myLocation?.longitude) {
-      markersRef.current.me.setLatLng([myLocation.latitude, myLocation.longitude]);
-      markersRef.current.me.bindPopup('You are here').openPopup();
-    }
-    
-    if (otherLocation?.latitude && otherLocation?.longitude) {
-      markersRef.current.other.setLatLng([otherLocation.latitude, otherLocation.longitude]);
-      markersRef.current.other.bindPopup('Other user').openPopup();
+    const currentMarkers = new Set();
+
+    // Update or create marker for current user
+    if (myLocation) {
+      const myMarker = markersRef.current.get('currentUser') || createMarker('You', '#00ff9d');
+      myMarker.setLatLng([myLocation.latitude, myLocation.longitude]);
+      currentMarkers.add('currentUser');
     }
 
-    // Fit bounds if both locations are available
-    if (myLocation && otherLocation) {
+    // Update or create markers for other users
+    users.forEach(user => {
+      if (user.location) {
+        const userColor = generateColor(user.username);
+        const marker = markersRef.current.get(user.username) || createMarker(user.username, userColor);
+        marker.setLatLng([user.location.latitude, user.location.longitude]);
+        currentMarkers.add(user.username);
+      }
+    });
+
+    // Remove old markers
+    markersRef.current.forEach((marker, key) => {
+      if (!currentMarkers.has(key)) {
+        map.removeLayer(marker);
+        markersRef.current.delete(key);
+      }
+    });
+
+    // Fit bounds if we have locations
+    const allLocations = [
+      myLocation,
+      ...users.filter(u => u.location).map(u => u.location)
+    ].filter(Boolean);
+
+    if (allLocations.length > 0) {
       const bounds = L.latLngBounds(
-        [myLocation.latitude, myLocation.longitude],
-        [otherLocation.latitude, otherLocation.longitude]
-      ).pad(0.1); // Add 10% padding around the bounds
+        allLocations.map(loc => [loc.latitude, loc.longitude])
+      ).pad(0.1);
       map.fitBounds(bounds);
-    } else if (myLocation) {
-      // If only my location is available, center on it
-      map.setView([myLocation.latitude, myLocation.longitude], 15);
     }
 
-  }, [myLocation, otherLocation]);
+    function createMarker(username, color) {
+      const marker = L.marker([0, 0], {
+        icon: L.divIcon({
+          className: 'custom-marker',
+          html: `
+            <div style="
+              background-color: ${color};
+              width: 20px;
+              height: 20px;
+              border-radius: 50%;
+              border: 3px solid white;
+              box-shadow: 0 0 10px rgba(0,0,0,0.5)
+            "></div>
+            <div style="
+              color: white;
+              background-color: rgba(0,0,0,0.7);
+              padding: 2px 6px;
+              border-radius: 10px;
+              font-size: 12px;
+              margin-top: 4px;
+              text-align: center;
+            ">${username}</div>
+          `,
+          iconSize: [40, 40],
+          iconAnchor: [20, 20]
+        })
+      }).addTo(map);
+
+      markersRef.current.set(username, marker);
+      return marker;
+    }
+
+  }, [myLocation, users, selectedUser]);
 
   return (
     <div 

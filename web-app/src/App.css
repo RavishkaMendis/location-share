@@ -205,6 +205,11 @@
   z-index: 1000;
   padding: 1rem;
   overflow-y: auto;
+  transition: transform 0.3s ease;
+}
+
+.users-sidebar.collapsed {
+  transform: translateX(100%);
 }
 
 .users-list {
@@ -258,4 +263,69 @@
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Add these styles for the hamburger menu and sidebar */
+.sidebar-toggle {
+  position: fixed;
+  top: 70px;
+  right: 10px;
+  z-index: 1001;
+  background: rgba(0, 0, 0, 0.8);
+  border: none;
+  color: #fff;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.sidebar-toggle:hover {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+/* Hamburger icon */
+.hamburger {
+  width: 20px;
+  height: 16px;
+  position: relative;
+  transform: rotate(0deg);
+  transition: .5s ease-in-out;
+  cursor: pointer;
+}
+
+.hamburger span {
+  display: block;
+  position: absolute;
+  height: 2px;
+  width: 100%;
+  background: #fff;
+  border-radius: 2px;
+  opacity: 1;
+  left: 0;
+  transform: rotate(0deg);
+  transition: .25s ease-in-out;
+}
+
+.hamburger span:nth-child(1) { top: 0px; }
+.hamburger span:nth-child(2) { top: 7px; }
+.hamburger span:nth-child(3) { top: 14px; }
+
+.hamburger.open span:nth-child(1) {
+  top: 7px;
+  transform: rotate(135deg);
+}
+
+.hamburger.open span:nth-child(2) {
+  opacity: 0;
+  left: -60px;
+}
+
+.hamburger.open span:nth-child(3) {
+  top: 7px;
+  transform: rotate(-135deg);
 }

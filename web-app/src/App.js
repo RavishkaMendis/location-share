@@ -14,6 +14,7 @@ function App() {
   const [username, setUsername] = useState('');
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     const websocket = new WebSocket('wss://location-share-ww81.onrender.com');
@@ -119,6 +120,10 @@ function App() {
     setSelectedUser(user);
   };
 
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
   return (
     <div className="app">
       {showJoinDialog ? (
@@ -164,7 +169,19 @@ function App() {
             </span>
           </div>
           
-          <div className="users-sidebar">
+          <button 
+            className="sidebar-toggle" 
+            onClick={toggleSidebar}
+            aria-label="Toggle users sidebar"
+          >
+            <div className={`hamburger ${sidebarOpen ? 'open' : ''}`}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </button>
+          
+          <div className={`users-sidebar ${!sidebarOpen ? 'collapsed' : ''}`}>
             <h3>Users in Session</h3>
             <div className="users-list">
               {users.map(user => (
